@@ -75,5 +75,20 @@ class Storage:
         )
         return cur.fetchone()[0]
 
+    def update_expense(self, expense_id, amount, category, description, date):
+        with self.conn:
+            cur = self.conn.execute(
+                "UPDATE expenses SET amount = ?, category = ?, description = ?, date = ? WHERE id = ?",
+                (amount, category, description, date, expense_id),
+            )
+        return cur.rowcount
+
+    def delete_expense(self, expense_id):
+        with self.conn:
+            cur = self.conn.execute(
+                "DELETE FROM expenses WHERE id = ?", (expense_id,)
+            )
+        return cur.rowcount
+
     def close(self):
         self.conn.close()

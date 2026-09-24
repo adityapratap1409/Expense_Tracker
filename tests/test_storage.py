@@ -36,7 +36,21 @@ class TestStorage(unittest.TestCase):
         self.storage.add_expense(5, "Food", "Tea", "2026-09-25")
         self.storage.add_expense(20, "Food", "Dinner", "2026-08-01")
         total = self.storage.get_month_total("Food", "2026-09")
-        self.assertEqual(total,15)   # what should September's total be?
+        self.assertEqual(total,15)
+
+
+    def test_update_expense_changes_row(self):
+     new_id = self.storage.add_expense(10, "Food", "Lunch", "2026-09-24")
+     self.storage.update_expense(new_id, 15, "Food", "Big lunch", "2026-09-24")
+     row = self.storage.get_expense(new_id)
+     self.assertEqual(row["amount"], 15)
+
+
+    def test_delete_expense(self):
+     new_id = self.storage.add_expense(10, "Food", "Lunch", "2026-09-24")
+     self.storage.delete_expense(new_id)
+     self.assertIsNone(self.storage.get_expense(new_id))
+     self.assertEqual(self.storage.delete_expense(999), 0)
 
 
 if __name__ == "__main__":
