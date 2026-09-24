@@ -75,5 +75,5 @@ class Storage:
         )
         return cur.fetchone()[0]
 
-        def close(self):
-            self.conn.close()
+    def close(self):
+        self.conn.close()
