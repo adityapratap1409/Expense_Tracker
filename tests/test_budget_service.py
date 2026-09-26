@@ -15,7 +15,7 @@ class TestBudgetService(unittest.TestCase):
     def test_check_alert_with_no_budget_returns_none(self):
         result = self.service.check_alert("rent", "2026-09")
         self.assertIsNone(result)
-    def test_check_alert_under_threshold_returns_friendly_messag(self):
+    def test_check_alert_under_threshold_returns_none(self):
      self.service.set_budget("food", "100")
      self.storage.add_expense(50, "Food", "Lunch", "2026-09-24")
      result = self.service.check_alert("food", "2026-09")
