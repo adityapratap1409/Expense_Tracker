@@ -2,19 +2,23 @@
 main.py
 ...docstring, rewritten in your own words for what this version does...
 """
+
 from storage import Storage
 from expense_service import ExpenseService, NotFoundError
 from budget_service import BudgetService
 from report_service import ReportService
 from validators import ValidationError
+from datetime import datetime
 
 DB_FILE = "expenses.db"
 menu_width = 42
+
 
 def print_header(title):
     print("\n" + "=" * menu_width)
     print(title.center(menu_width))
     print("=" * menu_width)
+
 
 def print_menu():
     print("\n" + "-" * menu_width)
@@ -32,10 +36,11 @@ def print_menu():
     print("12. Exit")
     print("-" * menu_width)
 
+
 def add_expense_flow(service):
     print_header("Add New Expense")
     amount = input("Amount ($): ").strip()
-    category = input("Category: ").strip()
+    category = input("Category: ").strip().title()
     description = input("Description (optional): ").strip()
     date_input = input("Date (DD-MM-YYYY) [blank = today]: ").strip()
     try:
@@ -43,6 +48,7 @@ def add_expense_flow(service):
         print(f"\nSaved expense #{new_id}.")
     except ValidationError as e:
         print(f"\nError: {e}")
+
 
 def view_expenses_flow(service):
     print_header("View Expenses")
@@ -53,7 +59,10 @@ def view_expenses_flow(service):
         print("\nNo expenses found.")
         return
     for expense in rows:
-        print(f"[{expense['id']:>3}] {expense['date']}  {expense['category']:<15} ${expense['amount']:>10.2f}  {expense['description']}")
+        print(
+            f"[{expense['id']:>3}] {expense['date']}  {expense['category']:<15} ${expense['amount']:>10.2f}  {expense['description']}"
+        )
+
 
 def edit_expense_flow(service):
     print_header("Edit Expense")
@@ -61,7 +70,7 @@ def edit_expense_flow(service):
     try:
         expense_id = int(id_input)
         amount = input("New amount [blank = keep current]: ").strip()
-        category = input("New category [blank = keep current]: ").strip()
+        category = input("New category [blank = keep current]: ").strip().title()
         description = input("New description [blank = keep current]: ").strip()
         date_input = input("New date (DD-MM-YYYY) [blank = keep current]: ").strip()
         service.edit_expense(expense_id, amount, category, description, date_input)
@@ -73,30 +82,35 @@ def edit_expense_flow(service):
     except ValidationError as e:
         print(f"\nError: {e}")
 
+
 def delete_expense_flow(service):
     print_header("Delete Expense")
     id_input = input("Expense ID to delete: ").strip()
     try:
-        expense_id=int(id_input)
-        service.delete_expense(expense_id)   
+        expense_id = int(id_input)
+        service.delete_expense(expense_id)
         print(f"\nExpense #{expense_id} deleted.")
     except ValueError:
-            print("\nError: expense ID must be a whole number.")
+        print("\nError: expense ID must be a whole number.")
     except NotFoundError as e:
-            print(f"\nError: {e}")
+        print(f"\nError: {e}")
+
 
 def search_by_category_flow(service):
     print_header("Search By Category")
-    category_input=input("Category to be seached: ").strip()
+    category_input = input("Category to be seached: ").strip().title()
     try:
-     result = service.search_by_category(category_input)
-     if not result:
-        print("\nNo expenses found in that category.")
-     else:
-        for expense in result:
-          print(f"[{expense['id']:>3}] {expense['date']}  {expense['category']:<15} ${expense['amount']:>10.2f}  {expense['description']}")
+        result = service.search_by_category(category_input)
+        if not result:
+            print("\nNo expenses found in that category.")
+        else:
+            for expense in result:
+                print(
+                    f"[{expense['id']:>3}] {expense['date']}  {expense['category']:<15} ${expense['amount']:>10.2f}  {expense['description']}"
+                )
     except ValidationError as e:
         print(f"\nError: {e}")
+
 
 def set_budget_flow(service):
     print_header("Set Budget")
@@ -109,7 +123,21 @@ def set_budget_flow(service):
         print(f"\nError: {e}")
 
 
-        
+def check_budget_flow(service):
+    print_header("Check Budget Status")
+    category = input("Category: ").strip().title()
+    month_input = input("Month (YYYY-MM) [blank = current month]: ").strip()
+    month = month_input if month_input else datetime.now().strftime("%Y-%m")    
+    try:
+        alert = service.check_alert(category, month)
+        if alert is None:
+            print("\nNo budget set for that category.")
+        else:
+            print(f"\n{alert}")
+    except ValidationError as e:
+        print(f"\nError: {e}")
+
+
 def main():
     storage = Storage(DB_FILE)
     expense_service = ExpenseService(storage)
@@ -122,22 +150,25 @@ def main():
         choice = input("Choose an option (1-12): ").strip()
         if choice == "1":
             add_expense_flow(expense_service)
-        elif choice =="2":
+        elif choice == "2":
             edit_expense_flow(expense_service)
-        elif choice=="3":
+        elif choice == "3":
             delete_expense_flow(expense_service)
         elif choice == "4":
             view_expenses_flow(expense_service)
-        elif choice=="5":
+        elif choice == "5":
             search_by_category_flow(expense_service)
-        elif choice=="6":
+        elif choice == "6":
             set_budget_flow(budget_service)
+        elif choice == "7":
+            check_budget_flow(budget_service)
         elif choice == "12":
             print("\nGoodbye!")
             storage.close()
             break
         else:
             print("\nOption not implemented yet.")
+
 
 if __name__ == "__main__":
     main()
