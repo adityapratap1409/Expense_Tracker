@@ -1,6 +1,9 @@
 """
 main.py
-...docstring, rewritten in your own words for what this version does...
+An Interactive CLI program made to help users efficiently and accurately manage their monthly expenses.
+This program features multiple operations for the user to perform like add, view, edit, delete their expenses, budgets
+and also view their top spending categories along with an option to export their expenses in a csv file
+
 """
 
 from storage import Storage
@@ -127,7 +130,7 @@ def check_budget_flow(service):
     print_header("Check Budget Status")
     category = input("Category: ").strip().title()
     month_input = input("Month (YYYY-MM) [blank = current month]: ").strip()
-    month = month_input if month_input else datetime.now().strftime("%Y-%m")    
+    month = month_input if month_input else datetime.now().strftime("%Y-%m")
     try:
         alert = service.check_alert(category, month)
         if alert is None:
@@ -136,6 +139,55 @@ def check_budget_flow(service):
             print(f"\n{alert}")
     except ValidationError as e:
         print(f"\nError: {e}")
+
+
+def monthly_summary_flow(service):
+    print_header("Monthly Summary")
+    month_input = input("Month (YYYY-MM) [blank = current month]: ").strip()
+    month = month_input if month_input else datetime.now().strftime("%Y-%m")
+    summary = service.monthly_summary(month)
+    print(
+        f"\n{summary['count']} expense(s) totaling ${summary['total']:.2f} in {month}."
+    )
+
+
+def category_breakdown_flow(service):
+    print_header("Category Summary")
+    month_input = input("Month (YYYY-MM) [blank = current month]: ").strip()
+    month = month_input if month_input else datetime.now().strftime("%Y-%m")
+    cat_breakdown = service.category_breakdown(month)
+    if not cat_breakdown:
+        print("\nNo expenses found for that month.")
+    else:
+        for category, total in cat_breakdown.items():
+            print(f"  {category:<15} ${total:>10.2f}")
+
+
+def top_expenses_flow(service):
+    print_header("Top Expenses")
+    month_input = input("Month (YYYY-MM) [blank = current month]: ").strip()
+    month = month_input if month_input else datetime.now().strftime("%Y-%m")
+    top = service.top_expenses(month, limit=5)
+    if not top:
+        print("\nNo expenses found for that month.")
+    else:
+        for expense in top:
+            print(
+                f"[{expense['id']:>3}] {expense['date']}  {expense['category']:<15} ${expense['amount']:>10.2f}  {expense['description']}"
+            )
+
+
+def export_csv_flow(service):
+    print_header("Export to CSV")
+    filename = (
+        input("Filename [expenses_export.csv]: ").strip() or "expenses_export.csv"
+    )
+    if not filename.endswith(".csv"):
+        filename += ".csv"
+    month_input = input("Month (YYYY-MM) [blank = all]: ").strip()
+    month = month_input if month_input else None
+    path = service.export_csv(filename, month)
+    print(f"\nExported to '{path}'.")
 
 
 def main():
@@ -162,12 +214,20 @@ def main():
             set_budget_flow(budget_service)
         elif choice == "7":
             check_budget_flow(budget_service)
+        elif choice == "8":
+            monthly_summary_flow(report_service)
+        elif choice == "9":
+            category_breakdown_flow(report_service)
+        elif choice == "10":
+            top_expenses_flow(report_service)
+        elif choice == "11":
+            export_csv_flow(report_service)
         elif choice == "12":
             print("\nGoodbye!")
             storage.close()
             break
         else:
-            print("\nOption not implemented yet.")
+            print("\nWrong Input.Please try again")
 
 
 if __name__ == "__main__":
