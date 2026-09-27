@@ -97,6 +97,19 @@ def search_by_category_flow(service):
           print(f"[{expense['id']:>3}] {expense['date']}  {expense['category']:<15} ${expense['amount']:>10.2f}  {expense['description']}")
     except ValidationError as e:
         print(f"\nError: {e}")
+
+def set_budget_flow(service):
+    print_header("Set Budget")
+    category = input("Category: ").strip().title()
+    amount = input("Monthly limit ($): ").strip()
+    try:
+        service.set_budget(category, amount)
+        print(f"\nBudget set: {category} — {amount} per month.")
+    except ValidationError as e:
+        print(f"\nError: {e}")
+
+
+        
 def main():
     storage = Storage(DB_FILE)
     expense_service = ExpenseService(storage)
@@ -117,6 +130,8 @@ def main():
             view_expenses_flow(expense_service)
         elif choice=="5":
             search_by_category_flow(expense_service)
+        elif choice=="6":
+            set_budget_flow(budget_service)
         elif choice == "12":
             print("\nGoodbye!")
             storage.close()
