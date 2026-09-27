@@ -55,6 +55,23 @@ def view_expenses_flow(service):
     for expense in rows:
         print(f"[{expense['id']:>3}] {expense['date']}  {expense['category']:<15} ${expense['amount']:>10.2f}  {expense['description']}")
 
+def edit_expense_flow(service):
+    print_header("Edit Expense")
+    id_input = input("Expense ID to edit: ").strip()
+    try:
+        expense_id = int(id_input)
+        amount = input("New amount [blank = keep current]: ").strip()
+        category = input("New category [blank = keep current]: ").strip()
+        description = input("New description [blank = keep current]: ").strip()
+        date_input = input("New date (DD-MM-YYYY) [blank = keep current]: ").strip()
+        service.edit_expense(expense_id, amount, category, description, date_input)
+        print(f"\nExpense #{expense_id} updated.")
+    except ValueError:
+        print("\nError: expense ID must be a whole number.")
+    except NotFoundError as e:
+        print(f"\nError: {e}")
+    except ValidationError as e:
+        print(f"\nError: {e}")
 
 def main():
     storage = Storage(DB_FILE)
@@ -68,6 +85,8 @@ def main():
         choice = input("Choose an option (1-12): ").strip()
         if choice == "1":
             add_expense_flow(expense_service)
+        elif choice =="2":
+            edit_expense_flow(expense_service)
         elif choice == "4":
             view_expenses_flow(expense_service)
         elif choice == "12":
