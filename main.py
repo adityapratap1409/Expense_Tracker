@@ -12,6 +12,8 @@ from budget_service import BudgetService
 from report_service import ReportService
 from validators import ValidationError
 from datetime import datetime
+import logging
+from logger_config import setup_logging
 
 DB_FILE = "expenses.db"
 menu_width = 42
@@ -49,8 +51,10 @@ def add_expense_flow(service):
     try:
         new_id = service.add_expense(amount, category, description, date_input)
         print(f"\nSaved expense #{new_id}.")
+        logging.info(f"Added expense #{new_id}: {category}, ${amount}")
     except ValidationError as e:
         print(f"\nError: {e}")
+        logging.error(f"Validation error: {e}")
 
 
 def view_expenses_flow(service):
@@ -78,12 +82,16 @@ def edit_expense_flow(service):
         date_input = input("New date (DD-MM-YYYY) [blank = keep current]: ").strip()
         service.edit_expense(expense_id, amount, category, description, date_input)
         print(f"\nExpense #{expense_id} updated.")
+        logging.info(f"Updated expense #{expense_id}")
     except ValueError:
         print("\nError: expense ID must be a whole number.")
+        logging.error("Invalid expense ID entered (not a number).")
     except NotFoundError as e:
         print(f"\nError: {e}")
+        logging.error(f"Not found: {e}")
     except ValidationError as e:
         print(f"\nError: {e}")
+        logging.error(f"Validation error: {e}")
 
 
 def delete_expense_flow(service):
@@ -93,10 +101,13 @@ def delete_expense_flow(service):
         expense_id = int(id_input)
         service.delete_expense(expense_id)
         print(f"\nExpense #{expense_id} deleted.")
+        logging.info(f"Deleted expense #{expense_id}")
     except ValueError:
         print("\nError: expense ID must be a whole number.")
+        logging.error("Invalid expense ID entered (not a number).")
     except NotFoundError as e:
         print(f"\nError: {e}")
+        logging.error(f"Not found: {e}")
 
 
 def search_by_category_flow(service):
@@ -113,6 +124,7 @@ def search_by_category_flow(service):
                 )
     except ValidationError as e:
         print(f"\nError: {e}")
+        logging.error(f"Validation error: {e}")
 
 
 def set_budget_flow(service):
@@ -124,6 +136,7 @@ def set_budget_flow(service):
         print(f"\nBudget set: {category} — {amount} per month.")
     except ValidationError as e:
         print(f"\nError: {e}")
+        logging.error(f"Validation error: {e}")
 
 
 def check_budget_flow(service):
@@ -139,6 +152,7 @@ def check_budget_flow(service):
             print(f"\n{alert}")
     except ValidationError as e:
         print(f"\nError: {e}")
+        logging.error(f"Validation error: {e}")
 
 
 def monthly_summary_flow(service):
@@ -195,6 +209,8 @@ def main():
     expense_service = ExpenseService(storage)
     budget_service = BudgetService(storage)
     report_service = ReportService(storage)
+    setup_logging()
+    logging.info("Expense Tracker started.")
 
     print_header("Expense Tracker")
     while True:
@@ -225,6 +241,7 @@ def main():
         elif choice == "12":
             print("\nGoodbye!")
             storage.close()
+            logging.info("Expense Tracker exited.")
             break
         else:
             print("\nWrong Input.Please try again")
