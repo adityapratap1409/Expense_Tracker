@@ -73,6 +73,18 @@ def edit_expense_flow(service):
     except ValidationError as e:
         print(f"\nError: {e}")
 
+def delete_expense_flow(service):
+    print_header("Delete Expense")
+    id_input = input("Expense ID to delete: ").strip()
+    try:
+        expense_id=int(id_input)
+        service.delete_expense(expense_id)   
+        print(f"\nExpense #{expense_id} deleted.")
+    except ValueError:
+            print("\nError: expense ID must be a whole number.")
+    except NotFoundError as e:
+            print(f"\nError: {e}")
+    
 def main():
     storage = Storage(DB_FILE)
     expense_service = ExpenseService(storage)
@@ -87,6 +99,8 @@ def main():
             add_expense_flow(expense_service)
         elif choice =="2":
             edit_expense_flow(expense_service)
+        elif choice=="3":
+            delete_expense_flow(expense_service)
         elif choice == "4":
             view_expenses_flow(expense_service)
         elif choice == "12":
