@@ -84,7 +84,19 @@ def delete_expense_flow(service):
             print("\nError: expense ID must be a whole number.")
     except NotFoundError as e:
             print(f"\nError: {e}")
-    
+
+def search_by_category_flow(service):
+    print_header("Search By Category")
+    category_input=input("Category to be seached: ").strip()
+    try:
+     result = service.search_by_category(category_input)
+     if not result:
+        print("\nNo expenses found in that category.")
+     else:
+        for expense in result:
+          print(f"[{expense['id']:>3}] {expense['date']}  {expense['category']:<15} ${expense['amount']:>10.2f}  {expense['description']}")
+    except ValidationError as e:
+        print(f"\nError: {e}")
 def main():
     storage = Storage(DB_FILE)
     expense_service = ExpenseService(storage)
@@ -103,6 +115,8 @@ def main():
             delete_expense_flow(expense_service)
         elif choice == "4":
             view_expenses_flow(expense_service)
+        elif choice=="5":
+            search_by_category_flow(expense_service)
         elif choice == "12":
             print("\nGoodbye!")
             storage.close()
