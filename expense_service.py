@@ -9,7 +9,7 @@ from validators import (
 
 
 class NotFoundError(Exception):
-    
+
     pass
 
 
@@ -20,22 +20,30 @@ class ExpenseService:
         self.storage = storage
 
     def delete_expense(self, expense_id):
-     
-     deleted=self.storage.delete_expense(expense_id)
-     if deleted==0:
-        raise NotFoundError(f"No expense found with id {expense_id}. ")
 
-    def edit_expense(self, expense_id, raw_amount, raw_category,raw_description, raw_date):
-     
-     old = self.storage.get_expense(expense_id)
-     if old is None:
-        raise NotFoundError(f"No expense found with id {expense_id}.")
-     amount = validate_amount(raw_amount) if raw_amount.strip() else old["amount"]
-     category = validate_category(raw_category) if raw_category.strip() else old["category"]
-     description =validate_description(raw_description) if raw_description.strip() else old["description"]
-     date =validate_date(raw_date) if raw_date.strip() else old["date"]
+        deleted = self.storage.delete_expense(expense_id)
+        if deleted == 0:
+            raise NotFoundError(f"No expense found with id {expense_id}. ")
 
-     self.storage.update_expense(expense_id, amount, category, description, date)
+    def edit_expense(
+        self, expense_id, raw_amount, raw_category, raw_description, raw_date
+    ):
+
+        old = self.storage.get_expense(expense_id)
+        if old is None:
+            raise NotFoundError(f"No expense found with id {expense_id}.")
+        amount = validate_amount(raw_amount) if raw_amount.strip() else old["amount"]
+        category = (
+            validate_category(raw_category) if raw_category.strip() else old["category"]
+        )
+        description = (
+            validate_description(raw_description)
+            if raw_description.strip()
+            else old["description"]
+        )
+        date = validate_date(raw_date) if raw_date.strip() else old["date"]
+
+        self.storage.update_expense(expense_id, amount, category, description, date)
 
     def list_expenses(self, month=None):
 
@@ -45,11 +53,11 @@ class ExpenseService:
 
         category = validate_category(raw_category)
         return [r for r in self.storage.list_expenses() if r["category"] == category]
-    
+
     def add_expense(self, raw_amount, raw_category, raw_description, raw_date):
 
         amount = validate_amount(raw_amount)
-        category = validate_category(raw_category)  
+        category = validate_category(raw_category)
         description = validate_description(raw_description)
         if raw_date.strip():
             date = validate_date(raw_date)

@@ -17,12 +17,15 @@ from logger_config import setup_logging
 
 DB_FILE = "expenses.db"
 menu_width = 42
-class Colors:
+
+
+class color:
     RESET = "\033[0m"
     CYAN = "\033[96m"
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
     RED = "\033[91m"
+
 
 def print_header(title):
     print("\n" + "=" * menu_width)
@@ -32,18 +35,18 @@ def print_header(title):
 
 def print_menu():
     print("\n" + "-" * menu_width)
-    print(f" {Colors.CYAN}1{Colors.RESET}. Add Expense")
-    print(f" {Colors.CYAN}2{Colors.RESET}. Edit Expense")
-    print(f" {Colors.CYAN}3{Colors.RESET}. Delete Expense")
-    print(f" {Colors.CYAN}4{Colors.RESET}. View Expenses")
-    print(f" {Colors.CYAN}5{Colors.RESET}. Search by Category")
-    print(f" {Colors.CYAN}6{Colors.RESET}. Set Budget")
-    print(f" {Colors.CYAN}7{Colors.RESET}. Check Budget Status")
-    print(f" {Colors.CYAN}8{Colors.RESET}. Monthly Summary")
-    print(f" {Colors.CYAN}9{Colors.RESET}. Category Breakdown")
-    print(f"{Colors.CYAN}10{Colors.RESET}. Top Expenses")
-    print(f"{Colors.CYAN}11{Colors.RESET}. Export to CSV")
-    print(f"{Colors.CYAN}12{Colors.RESET}. Exit")
+    print(f" {color.CYAN}1{color.RESET}. Add Expense")
+    print(f" {color.CYAN}2{color.RESET}. Edit Expense")
+    print(f" {color.CYAN}3{color.RESET}. Delete Expense")
+    print(f" {color.CYAN}4{color.RESET}. View Expenses")
+    print(f" {color.CYAN}5{color.RESET}. Search by Category")
+    print(f" {color.CYAN}6{color.RESET}. Set Budget")
+    print(f" {color.CYAN}7{color.RESET}. Check Budget Status")
+    print(f" {color.CYAN}8{color.RESET}. Monthly Summary")
+    print(f" {color.CYAN}9{color.RESET}. Category Breakdown")
+    print(f"{color.CYAN}10{color.RESET}. Top Expenses")
+    print(f"{color.CYAN}11{color.RESET}. Export to CSV")
+    print(f"{color.CYAN}12{color.RESET}. Exit")
     print("-" * menu_width)
 
 
@@ -55,10 +58,10 @@ def add_expense_flow(service):
     date_input = input("Date (DD-MM-YYYY) [blank = today]: ").strip()
     try:
         new_id = service.add_expense(amount, category, description, date_input)
-        print(f"\n{Colors.GREEN}Saved expense #{new_id}.{Colors.RESET}")
+        print(f"\n{color.GREEN}Saved expense #{new_id}.{color.RESET}")
         logging.info(f"Added expense #{new_id}: {category}, ${amount}.")
     except ValidationError as e:
-        print(f"\n{Colors.RED}Error: {e}{Colors.RESET}")
+        print(f"\n{color.RED}Error: {e}{color.RESET}")
         logging.error(f"Validation error: {e}")
 
 
@@ -68,7 +71,7 @@ def view_expenses_flow(service):
     month = month_input if month_input else None
     rows = service.list_expenses(month)
     if not rows:
-        print(f"\n{Colors.RED}No expenses found.{Colors.RESET}")
+        print(f"\n{color.RED}No expenses found.{color.RESET}")
         return
     for expense in rows:
         print(
@@ -89,13 +92,13 @@ def edit_expense_flow(service):
         print(f"\nExpense #{expense_id} updated.")
         logging.info(f"Updated expense #{expense_id}")
     except ValueError:
-        print(f"\n{Colors.RED}Error: expense ID must be a whole number.{Colors.RESET}")
+        print(f"\n{color.RED}Error: expense ID must be a whole number.{color.RESET}")
         logging.error(f"Invalid expense ID entered (not a number).")
     except NotFoundError as e:
-        print(f"\n{Colors.RED}Error: {e}{Colors.RESET}")
+        print(f"\n{color.RED}Error: {e}{color.RESET}")
         logging.error(f"Not found: {e}")
     except ValidationError as e:
-        print(f"\n{Colors.RED}Error: {e}{Colors.RESET}")
+        print(f"\n{color.RED}Error: {e}{color.RESET}")
         logging.error(f"Validation error: {e}")
 
 
@@ -105,13 +108,13 @@ def delete_expense_flow(service):
     try:
         expense_id = int(id_input)
         service.delete_expense(expense_id)
-        print(f"\n{Colors.GREEN}Expense #{expense_id} deleted.{Colors.RESET}")
+        print(f"\n{color.GREEN}Expense #{expense_id} deleted.{color.RESET}")
         logging.info(f"Deleted expense #{expense_id}")
     except ValueError:
-        print(f"\n{Colors.RED}Error: expense ID must be a whole number.{Colors.RESET}")
+        print(f"\n{color.RED}Error: expense ID must be a whole number.{color.RESET}")
         logging.error(f"Invalid expense ID entered (not a number).")
     except NotFoundError as e:
-        print(f"\n{Colors.RED}Error: {e}{Colors.RESET}")
+        print(f"\n{color.RED}Error: {e}{color.RESET}")
         logging.error(f"Not found: {e}")
 
 
@@ -121,14 +124,14 @@ def search_by_category_flow(service):
     try:
         result = service.search_by_category(category_input)
         if not result:
-            print(f"\n{Colors.RED}No expenses found in that category.{Colors.RESET}")
+            print(f"\n{color.RED}No expenses found in that category.{color.RESET}")
         else:
             for expense in result:
                 print(
                     f"[{expense['id']:>3}] {expense['date']}  {expense['category']:<15} ${expense['amount']:>10.2f}  {expense['description']}"
                 )
     except ValidationError as e:
-        print(f"\n{Colors.RED}Error: {e}{Colors.RESET}")
+        print(f"\n{color.RED}Error: {e}{color.RESET}")
         logging.error(f"Validation error: {e}")
 
 
@@ -138,9 +141,11 @@ def set_budget_flow(service):
     amount = input("Monthly limit ($): ").strip()
     try:
         service.set_budget(category, amount)
-        print(f"\n{Colors.GREEN}Budget set: {category} — {amount} per month.{Colors.RESET}")
+        print(
+            f"\n{color.GREEN}Budget set: {category} — {amount} per month.{color.RESET}"
+        )
     except ValidationError as e:
-        print(f"\n{Colors.RED}Error: {e}{Colors.RESET}")
+        print(f"\n{color.RED}Error: {e}{color.RESET}")
         logging.error(f"Validation error: {e}")
 
 
@@ -152,11 +157,11 @@ def check_budget_flow(service):
     try:
         alert = service.check_alert(category, month)
         if alert is None:
-            print(f"\n{Colors.RED}No budget set for that category.{Colors.RESET}")
+            print(f"\n{color.RED}No budget set for that category.{color.RESET}")
         else:
             print(f"\n{alert}")
     except ValidationError as e:
-        print(f"\n{Colors.RED}Error: {e}{Colors.RESET}")
+        print(f"\n{color.RED}Error: {e}{color.RESET}")
         logging.error(f"Validation error: {e}")
 
 
@@ -176,7 +181,7 @@ def category_breakdown_flow(service):
     month = month_input if month_input else datetime.now().strftime("%Y-%m")
     cat_breakdown = service.category_breakdown(month)
     if not cat_breakdown:
-        print(f"\n{Colors.RED}No expenses found for that month.{Colors.RESET}")
+        print(f"\n{color.RED}No expenses found for that month.{color.RESET}")
     else:
         for category, total in cat_breakdown.items():
             print(f"  {category:<15} ${total:>10.2f}")
@@ -188,7 +193,7 @@ def top_expenses_flow(service):
     month = month_input if month_input else datetime.now().strftime("%Y-%m")
     top = service.top_expenses(month, limit=5)
     if not top:
-        print(f"\n{Colors.RED}No expenses found for that month.{Colors.RESET}")
+        print(f"\n{color.RED}No expenses found for that month.{color.RESET}")
     else:
         for expense in top:
             print(
@@ -206,7 +211,7 @@ def export_csv_flow(service):
     month_input = input("Month (YYYY-MM) [blank = all]: ").strip()
     month = month_input if month_input else None
     path = service.export_csv(filename, month)
-    print(f"\n{Colors.GREEN}Exported to '{path}'.{Colors.RESET}")
+    print(f"\n{color.GREEN}Exported to '{path}'.{color.RESET}")
 
 
 def main():

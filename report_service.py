@@ -1,4 +1,6 @@
 import csv
+
+
 class ReportService:
     def __init__(self, storage):
         self.storage = storage
@@ -20,14 +22,22 @@ class ReportService:
 
     def top_expenses(self, month, limit=5):
         rows = self.storage.list_expenses(month)
-        sorted_rows=sorted(rows, key=lambda expense: expense["amount"], reverse=True)
+        sorted_rows = sorted(rows, key=lambda expense: expense["amount"], reverse=True)
         return sorted_rows[:limit]
 
     def export_csv(self, filename, month=None):
-       rows = self.storage.list_expenses(month)
-       with open(filename, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["ID", "Date", "Category", "Amount", "Description"])
-        for expense in rows:
-         writer.writerow([expense["id"], expense["date"], expense["category"], f'{expense["amount"]:.2f}', expense["description"]])
-        return filename
+        rows = self.storage.list_expenses(month)
+        with open(filename, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["ID", "Date", "Category", "Amount", "Description"])
+            for expense in rows:
+                writer.writerow(
+                    [
+                        expense["id"],
+                        expense["date"],
+                        expense["category"],
+                        f'{expense["amount"]:.2f}',
+                        expense["description"],
+                    ]
+                )
+            return filename

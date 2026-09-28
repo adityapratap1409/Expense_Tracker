@@ -22,13 +22,13 @@ class TestStorage(unittest.TestCase):
     def test_get_missing_expense_returns_none(self):
 
         self.assertIsNone(self.storage.get_expense(999))
-    
+
     def test_list_expenses_filters_by_month(self):
-       
-       self.storage.add_expense(10, "Food", "Lunch", "2026-09-24")
-       self.storage.add_expense(20, "Food", "Dinner", "2026-08-01")
-       rows = self.storage.list_expenses("2026-09")
-       self.assertEqual(len(rows), 1)
+
+        self.storage.add_expense(10, "Food", "Lunch", "2026-09-24")
+        self.storage.add_expense(20, "Food", "Dinner", "2026-08-01")
+        rows = self.storage.list_expenses("2026-09")
+        self.assertEqual(len(rows), 1)
 
     def test_set_budget_twice_keeps_one_row(self):
 
@@ -44,25 +44,23 @@ class TestStorage(unittest.TestCase):
         self.storage.add_expense(5, "Food", "Tea", "2026-09-25")
         self.storage.add_expense(20, "Food", "Dinner", "2026-08-01")
         total = self.storage.get_month_total("Food", "2026-09")
-        self.assertEqual(total,15)
-
+        self.assertEqual(total, 15)
 
     def test_update_expense_changes_row(self):
-     
-     new_id = self.storage.add_expense(10, "Food", "Lunch", "2026-09-24")
-     self.storage.update_expense(new_id, 15, "Food", "Big lunch", "2026-09-24")
-     row = self.storage.get_expense(new_id)
-     self.assertEqual(row["amount"], 15)
 
+        new_id = self.storage.add_expense(10, "Food", "Lunch", "2026-09-24")
+        self.storage.update_expense(new_id, 15, "Food", "Big lunch", "2026-09-24")
+        row = self.storage.get_expense(new_id)
+        self.assertEqual(row["amount"], 15)
 
     def test_delete_expense(self):
-     
-     new_id = self.storage.add_expense(10, "Food", "Lunch", "2026-09-24")
-     self.storage.delete_expense(new_id)
-     self.assertIsNone(self.storage.get_expense(new_id))
-     self.assertEqual(self.storage.delete_expense(999), 0)
+
+        new_id = self.storage.add_expense(10, "Food", "Lunch", "2026-09-24")
+        self.storage.delete_expense(new_id)
+        self.assertIsNone(self.storage.get_expense(new_id))
+        self.assertEqual(self.storage.delete_expense(999), 0)
 
 
 if __name__ == "__main__":
-    
+
     unittest.main()
