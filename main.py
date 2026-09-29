@@ -1,5 +1,6 @@
 from datetime import datetime
 import logging
+import sys
 
 from storage import Storage
 from expense_service import ExpenseService, NotFoundError
@@ -11,261 +12,248 @@ from logger_config import init_log
 DB_FILE = "expenses.db"
 MENU_W = 42
 
-class color:
-    RESET = "\033[0m"
-    CYAN = "\033[96m"
-    GREEN = "\033[92m"
-    YELLOW = "\033[93m"
+class clr:
+    RST = "\033[0m"
+    CYN = "\033[96m"
+    GRN = "\033[92m"
+    YLW = "\033[93m"
     RED = "\033[91m"
 
-def hdr(txt):
-    print("\n" + "=" * MENU_W)
+def _hdr(txt):
+    print("\n" + "="*MENU_W)
     print(txt.center(MENU_W))
-    print("=" * MENU_W)
+    print("="*MENU_W)
 
-def showMenu():
-    print("\n" + "-" * MENU_W)
-    print(" " + color.CYAN + "1" + color.RESET + ". Add Expense")
-    print(" " + color.CYAN + "2" + color.RESET + ". Edit Expense")
-    print(" " + color.CYAN + "3" + color.RESET + ". Delete Expense")
-    print(" " + color.CYAN + "4" + color.RESET + ". View Expenses")
-    print(" " + color.CYAN + "5" + color.RESET + ". Search by Category")
-    print(" " + color.CYAN + "6" + color.RESET + ". Set Budget")
-    print(" " + color.CYAN + "7" + color.RESET + ". Check Budget Status")
-    print(" " + color.CYAN + "8" + color.RESET + ". Monthly Summary")
-    print(" " + color.CYAN + "9" + color.RESET + ". Category Breakdown")
-    print(color.CYAN + "10" + color.RESET + ". Top Expenses")
-    print(color.CYAN + "11" + color.RESET + ". Export to CSV")
-    print(color.CYAN + "12" + color.RESET + ". Exit")
-    print("-" * MENU_W)
+def _menu():
+    print("\n" + "-"*MENU_W)
+    items = [
+        " %s1%s. Add Expense",
+        " %s2%s. Edit Expense",
+        " %s3%s. Delete Expense",
+        " %s4%s. View Expenses",
+        " %s5%s. Search by Category",
+        " %s6%s. Set Budget",
+        " %s7%s. Check Budget Status",
+        " %s8%s. Monthly Summary",
+        " %s9%s. Category Breakdown",
+        "%s10%s. Top Expenses",
+        "%s11%s. Export to CSV",
+        "%s12%s. Exit",
+    ]
+    for t in items:
+        print(t % (clr.CYN, clr.RST))
+    print("-"*MENU_W)
 
-def flow_add(svc):
-    hdr("Add New Expense")
+
+def _fmt_row(r):
+    # helper to format an expense row for display
+    s = "[%3s] %s  %-15s $%10.2f  %s" % (
+        r['id'], r['date'], r['category'], r['amount'], r['description'])
+    return s
+
+
+def do_add(svc):
+    _hdr("Add New Expense")
     amt = input("Amount ($): ").strip()
     cat = input("Category: ").strip()
     desc = input("Description (optional): ").strip()
     dt = input("Date (DD-MM-YYYY) [blank = today]: ").strip()
-
     try:
-        new_id = svc.add_exp(amt, cat, desc, dt)
-        print("\n" + color.GREEN + ("Saved expense #%s." % new_id) + color.RESET)
-        logging.info("Added expense #%s: %s, $%s." % (new_id, cat.title(), amt))
+        eid = svc.add_exp(amt, cat, desc, dt)
+        print("\n" + clr.GRN + "Saved expense #" + str(eid) + "." + clr.RST)
+        logging.info("Added expense #%s" % eid)
     except ValidationError as e:
-        print("\n" + color.RED + ("Error: %s" % e) + color.RESET)
-        logging.error("Validation error: %s" % e)
+        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
+        logging.error("add failed: %s" % str(e))
 
-def viewFlow(svc):
-    hdr("View Expenses")
+
+def do_view(svc):
+    _hdr("View Expenses")
     inp = input("Filter by month (YYYY-MM) [blank = all]: ").strip()
-    if len(inp) > 0:
-        mth = inp
-    else:
-        mth = None
-
+    mth = inp if inp != "" else None
     rows = svc.list_exp(mth)
     if len(rows) == 0:
-        print("\n" + color.RED + "No expenses found." + color.RESET)
-        return
+        print("\n" + clr.RED + "No expenses found." + clr.RST)
     else:
         for r in rows:
-            print("[%3s] %s  %-15s $%10.2f  %s" % (r['id'], r['date'], r['category'], r['amount'], r['description']))
+            print(_fmt_row(r))
 
-def edit_flow(svc):
-    hdr("Edit Expense")
-    raw_id = input("Expense ID to edit: ").strip()
 
+def do_edit(svc):
+    _hdr("Edit Expense")
+    raw = input("Expense ID to edit: ").strip()
     try:
-        exp_id = int(raw_id)
-        print("Leave blank to keep existing value:")
-        amt = input("New amount [blank = keep current]: ").strip()
-        cat = input("New category [blank = keep current]: ").strip()
-        desc = input("New description [blank = keep current]: ").strip()
-        dt = input("New date (DD-MM-YYYY) [blank = keep current]: ").strip()
+        eid = int(raw)
+    except:
+        print("\n" + clr.RED + "Error: ID must be a number." + clr.RST)
+        logging.error("bad expense id input")
+        return
 
-        svc.editExp(exp_id, amt, cat, desc, dt)
-        print("\n" + color.GREEN + ("Expense #%s updated." % exp_id) + color.RESET)
-        logging.info("Updated expense #%s" % exp_id)
-    except ValueError:
-        print("\n" + color.RED + "Error: Expense ID must be a whole number." + color.RESET)
-        logging.error("Invalid expense ID (not an int).")
+    print("Leave blank to keep current value:")
+    a = input("New amount [blank = keep]: ").strip()
+    c = input("New category [blank = keep]: ").strip()
+    d = input("New description [blank = keep]: ").strip()
+    dt = input("New date DD-MM-YYYY [blank = keep]: ").strip()
+    try:
+        svc.editExp(eid, a, c, d, dt)
+        print("\n" + clr.GRN + "Expense #" + str(eid) + " updated." + clr.RST)
+        logging.info("updated #%d" % eid)
     except NotFoundError as e:
-        print("\n" + color.RED + ("Error: %s" % e) + color.RESET)
-        logging.error("Not found: %s" % e)
+        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
+        logging.error(str(e))
     except ValidationError as e:
-        print("\n" + color.RED + ("Error: %s" % e) + color.RESET)
-        logging.error("Validation error: %s" % e)
+        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
+        logging.error(str(e))
 
-def delFlow(svc):
-    hdr("Delete Expense")
-    raw_id = input("Expense ID to delete: ").strip()
 
+def do_del(svc):
+    _hdr("Delete Expense")
+    raw = input("Expense ID to delete: ").strip()
     try:
-        exp_id = int(raw_id)
-        svc.del_exp(exp_id)
-        print("\n" + color.GREEN + ("Expense #%s deleted." % exp_id) + color.RESET)
-        logging.info("Deleted expense #%s" % exp_id)
+        eid = int(raw)
+        svc.del_exp(eid)
+        print("\n" + clr.GRN + "Expense #" + str(eid) + " deleted." + clr.RST)
+        logging.info("deleted #%d" % eid)
     except ValueError:
-        print("\n" + color.RED + "Error: Expense ID must be a whole number." + color.RESET)
-        logging.error("Invalid expense ID for deletion.")
+        print("\n" + clr.RED + "Error: ID must be a number." + clr.RST)
     except NotFoundError as e:
-        print("\n" + color.RED + ("Error: %s" % e) + color.RESET)
-        logging.error("Not found: %s" % e)
+        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
 
-def search_cat_flow(svc):
-    hdr("Search By Category")
+
+def do_search(svc):
+    _hdr("Search By Category")
     cat = input("Category to search: ").strip()
-
     try:
         res = svc.findByCat(cat)
         if len(res) == 0:
-            print("\n" + color.RED + ("No expenses found in category '%s'." % cat.title()) + color.RESET)
+            print("\n" + clr.RED + "Nothing found for '" + cat.title() + "'." + clr.RST)
         else:
             for r in res:
-                print("[%3s] %s  %-15s $%10.2f  %s" % (r['id'], r['date'], r['category'], r['amount'], r['description']))
+                print(_fmt_row(r))
     except ValidationError as e:
-        print("\n" + color.RED + ("Error: %s" % e) + color.RESET)
-        logging.error("Validation error: %s" % e)
+        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
 
-def setBgtFlow(svc):
-    hdr("Set Budget")
+
+def do_setbgt(svc):
+    _hdr("Set Budget")
     cat = input("Category: ").strip()
     lim = input("Monthly limit ($): ").strip()
-
     try:
         svc.set_bgt(cat, lim)
-        print("\n" + color.GREEN + ("Budget set: %s — $%.2f per month." % (cat.title(), float(lim))) + color.RESET)
-        logging.info("Set budget for %s to $%s" % (cat.title(), lim))
+        print("\n" + clr.GRN + "Budget set for " + cat.title() + "." + clr.RST)
+        logging.info("budget set: %s" % cat.title())
     except ValidationError as e:
-        print("\n" + color.RED + ("Error: %s" % e) + color.RESET)
-        logging.error("Validation error: %s" % e)
+        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
 
-def chk_bgt_flow(svc):
-    hdr("Check Budget Status")
+
+def do_chkbgt(svc):
+    _hdr("Check Budget Status")
     cat = input("Category: ").strip()
-    inp = input("Month (YYYY-MM) [blank = current month]: ").strip()
-    if len(inp) > 0:
-        mth = inp
-    else:
-        mth = datetime.now().strftime("%Y-%m")
-
+    inp = input("Month (YYYY-MM) [blank = now]: ").strip()
+    mth = inp if inp != "" else datetime.now().strftime("%Y-%m")
     try:
-        alert = svc.chk_alert(cat, mth)
-        if alert is None:
-            print("\n" + color.YELLOW + ("No budget set for category '%s'." % cat.title()) + color.RESET)
+        msg = svc.chk_alert(cat, mth)
+        if msg == None:
+            print("\n" + clr.YLW + "No budget set for '" + cat.title() + "'." + clr.RST)
         else:
-            print("\n" + alert)
+            print("\n" + msg)
     except ValidationError as e:
-        print("\n" + color.RED + ("Error: %s" % e) + color.RESET)
-        logging.error("Validation error: %s" % e)
+        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
 
-def summary_flow(svc):
-    hdr("Monthly Summary")
-    inp = input("Month (YYYY-MM) [blank = current month]: ").strip()
-    if len(inp) > 0:
+
+def do_summary(svc):
+    _hdr("Monthly Summary")
+    inp = input("Month (YYYY-MM) [blank = now]: ").strip()
+    if inp != "":
         mth = inp
     else:
         mth = datetime.now().strftime("%Y-%m")
-
     s = svc.month_summary(mth)
-    print("\n%s expense(s) totaling $%.2f in %s." % (s['count'], s['total'], mth))
+    print("\n%d expense(s) totaling $%.2f in %s." % (s['count'], s['total'], mth))
 
-def catFlow(svc):
-    hdr("Category Summary")
-    inp = input("Month (YYYY-MM) [blank = current month]: ").strip()
-    if len(inp) > 0:
-        mth = inp
-    else:
-        mth = datetime.now().strftime("%Y-%m")
 
-    breakdown = svc.catBreakdown(mth)
-    if len(breakdown) == 0:
-        print("\n" + color.RED + ("No expenses found for %s." % mth) + color.RESET)
-    else:
-        print("\nSpending breakdown for " + mth + ":")
-        for c, tot in breakdown.items():
-            print("  %-15s $%10.2f" % (c, tot))
+def do_catbrk(svc):
+    _hdr("Category Summary")
+    inp = input("Month (YYYY-MM) [blank = now]: ").strip()
+    mth = inp if inp != "" else datetime.now().strftime("%Y-%m")
+    brk = svc.catBreakdown(mth)
+    if len(brk) == 0:
+        print("\n" + clr.RED + "No expenses for " + mth + "." + clr.RST)
+        return
+    print("")
+    for cat in brk:
+        print("  %-15s $%10.2f" % (cat, brk[cat]))
 
-def top_flow(svc):
-    hdr("Top Expenses")
-    inp = input("Month (YYYY-MM) [blank = current month]: ").strip()
-    if len(inp) > 0:
-        mth = inp
-    else:
-        mth = datetime.now().strftime("%Y-%m")
 
-    top = svc.top_exp(mth, limit=5)
+def do_top(svc):
+    _hdr("Top Expenses")
+    inp = input("Month (YYYY-MM) [blank = now]: ").strip()
+    mth = inp if inp != "" else datetime.now().strftime("%Y-%m")
+    top = svc.top_exp(mth, 5)
     if len(top) == 0:
-        print("\n" + color.RED + ("No expenses found for %s." % mth) + color.RESET)
+        print("\n" + clr.RED + "No expenses for " + mth + "." + clr.RST)
     else:
-        print("\nTop expenses for " + mth + ":")
+        print("")
         for r in top:
-            print("[%3s] %s  %-15s $%10.2f  %s" % (r['id'], r['date'], r['category'], r['amount'], r['description']))
+            print(_fmt_row(r))
 
-def csv_flow(svc):
-    hdr("Export to CSV")
+def do_csv(svc):
+    _hdr("Export to CSV")
     fname = input("Filename [expenses_export.csv]: ").strip()
-    if len(fname) == 0:
+    if fname == "":
         fname = "expenses_export.csv"
-    if not fname.endswith(".csv"):
+    # add .csv if missing
+    if fname.endswith(".csv") == False:
         fname = fname + ".csv"
-
     inp = input("Month (YYYY-MM) [blank = all]: ").strip()
-    if len(inp) > 0:
-        mth = inp
-    else:
-        mth = None
-
+    mth = inp if inp != "" else None
     out = svc.exportCSV(fname, mth)
-    print("\n" + color.GREEN + ("Successfully exported to '%s'." % out) + color.RESET)
-    logging.info("Exported data to " + out)
+    print("\n" + clr.GRN + "Exported to '" + out + "'." + clr.RST)
+    logging.info("export: " + out)
+
 
 def main():
     db = Storage(DB_FILE)
-    exp_svc = ExpenseService(db)
-    bgt_svc = BudgetService(db)
-    rpt_svc = ReportService(db)
-
+    exp = ExpenseService(db)
+    bgt = BudgetService(db)
+    rpt = ReportService(db)
     init_log()
-    logging.info("Expense Tracker started.")
+    logging.info("app started")
 
-    hdr("Expense Tracker")
+    _hdr("Expense Tracker")
 
-    while True:
-        showMenu()
+    handlers = {
+        "1": lambda: do_add(exp),
+        "2": lambda: do_edit(exp),
+        "3": lambda: do_del(exp),
+        "4": lambda: do_view(exp),
+        "5": lambda: do_search(exp),
+        "6": lambda: do_setbgt(bgt),
+        "7": lambda: do_chkbgt(bgt),
+        "8": lambda: do_summary(rpt),
+        "9": lambda: do_catbrk(rpt),
+        "10": lambda: do_top(rpt),
+        "11": lambda: do_csv(rpt),
+    }
+
+    running = True
+    while running:
+        _menu()
         opt = input("Choose an option (1-12): ").strip()
-
-        if opt == "1":
-            flow_add(exp_svc)
-        elif opt == "2":
-            edit_flow(exp_svc)
-        elif opt == "3":
-            delFlow(exp_svc)
-        elif opt == "4":
-            viewFlow(exp_svc)
-        elif opt == "5":
-            search_cat_flow(exp_svc)
-        elif opt == "6":
-            setBgtFlow(bgt_svc)
-        elif opt == "7":
-            chk_bgt_flow(bgt_svc)
-        elif opt == "8":
-            summary_flow(rpt_svc)
-        elif opt == "9":
-            catFlow(rpt_svc)
-        elif opt == "10":
-            top_flow(rpt_svc)
-        elif opt == "11":
-            csv_flow(rpt_svc)
-        elif opt == "12":
+        if opt == "12":
             print("\nGoodbye!")
             db.close()
-            logging.info("Expense Tracker exited normally.")
-            break
+            logging.info("app closed")
+            running = False
+        elif opt in handlers:
+            handlers[opt]()
         else:
-            print("\n" + color.RED + ("Invalid option '%s'. Please enter 1-12." % opt) + color.RESET)
+            print("\n" + clr.RED + "Invalid option, try again." + clr.RST)
+
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\nSession closed by user. Bye!")
+        print("\nBye!")
+        sys.exit(0)

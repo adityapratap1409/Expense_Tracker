@@ -1,4 +1,5 @@
 import csv
+import os
 
 class ReportService:
     def __init__(self, storage):
@@ -6,34 +7,58 @@ class ReportService:
 
     def month_summary(self, mth):
         rows = self.storage.list_all(mth)
-        cnt = len(rows)
-        tot = 0.0
-        for r in rows:
-            tot = tot + r["amount"]
-        return {"count": cnt, "total": round(tot, 2)}
+        total = 0
+        n = 0
+        for row in rows:
+            total = total + row["amount"]
+            n = n + 1
+        total = round(total, 2)
+        return {"count": n, "total": total}
 
     def catBreakdown(self, mth):
         rows = self.storage.list_all(mth)
-        by_cat = {}
-        for r in rows:
-            c = r["category"]
-            if c not in by_cat:
-                by_cat[c] = 0.0
-            by_cat[c] = round(by_cat[c] + r["amount"], 2)
-        return by_cat
+        cats = {}
+        for row in rows:
+            k = row["category"]
+            if k in cats:
+                cats[k] = cats[k] + row["amount"]
+            else:
+                cats[k] = row["amount"]
+        # round everything
+        for k in cats:
+            cats[k] = round(cats[k], 2)
+        return cats
 
     def top_exp(self, mth, limit=5):
         rows = self.storage.list_all(mth)
-        top = sorted(rows, key=lambda x: x["amount"], reverse=True)
-        return top[:limit]
+        # bubble sort lol, could use sorted() but whatever
+        data = list(rows)
+        n = len(data)
+        i = 0
+        while i < n:
+            j = 0
+            while j < n - i - 1:
+                if data[j]["amount"] < data[j+1]["amount"]:
+                    tmp = data[j]
+                    data[j] = data[j+1]
+                    data[j+1] = tmp
+                j = j + 1
+            i = i + 1
+        if limit > len(data):
+            limit = len(data)
+        return data[0:limit]
 
     def exportCSV(self, fname, mth=None):
         rows = self.storage.list_all(mth)
-        f = open(fname, "w", newline="", encoding="utf-8")
-        w = csv.writer(f)
-        w.writerow(["ID", "Date", "Category", "Amount", "Description"])
-        for r in rows:
-            amt_str = "%.2f" % r["amount"]
-            w.writerow([r["id"], r["date"], r["category"], amt_str, r["description"]])
-        f.close()
+        fh = open(fname, "w", newline="")
+        writer = csv.writer(fh)
+        # header
+        writer.writerow(["ID", "Date", "Category", "Amount", "Description"])
+        idx = 0
+        while idx < len(rows):
+            r = rows[idx]
+            a = "%.2f" % r["amount"]
+            writer.writerow([r["id"], r["date"], r["category"], a, r["description"]])
+            idx += 1
+        fh.close()
         return fname

@@ -13,33 +13,36 @@ class TestExpenseService(unittest.TestCase):
     def tearDown(self):
         self.db.close()
 
-    def test_blank_date(self):
-        # blank date defaults to today
-        eid = self.svc.add_exp("12.5", "Food", "Lunch", " ")
-        r = self.db.getExp(eid)
-        self.assertEqual(r["date"], datetime.now().strftime("%Y-%m-%d"))
+    def test_add_blank_date(self):
+        id = self.svc.add_exp("12.5", "Food", "Lunch", " ")
+        r = self.db.getExp(id)
+        today = datetime.now().strftime("%Y-%m-%d")
+        self.assertTrue(r["date"] == today)
 
-    def test_bad_amt(self):
-        # garbage text should raise
-        with self.assertRaises(ValidationError):
+    def test_add_bad_amount(self):
+        ok = False
+        try:
             self.svc.add_exp("abc", "food", "lunch", " ")
+        except ValidationError:
+            ok = True
+        self.assertTrue(ok)
 
-    def test_edit_blank(self):
-        # blank string keeps old value
-        eid = self.svc.add_exp("10", "food", "lunch", "24-09-2026")
-        self.svc.editExp(eid, "", "", "", "")
-        r = self.db.getExp(eid)
-
+    def test_edit_keeps_old(self):
+        id = self.svc.add_exp("10", "food", "lunch", "24-09-2026")
+        self.svc.editExp(id, "", "", "", "")
+        r = self.db.getExp(id)
         self.assertEqual(r["amount"], 10.0)
-        self.assertEqual(r["category"], "Food")
+        self.assertTrue(r["category"] == "Food")
         self.assertEqual(r["description"], "lunch")
         self.assertEqual(r["date"], "2026-09-24")
 
-    def test_del_missing(self):
-        # non-existent id raises NotFoundError
-        with self.assertRaises(NotFoundError):
+    def test_delete_nonexistent(self):
+        gotError = False
+        try:
             self.svc.del_exp(999)
-
+        except NotFoundError:
+            gotError = True
+        self.assertTrue(gotError == True)
 
 if __name__ == "__main__":
     unittest.main()

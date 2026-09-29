@@ -4,45 +4,53 @@ from datetime import datetime
 class ValidationError(ValueError):
     pass
 
+
+# validates amount input from user
 def val_amt(s):
-    # strip whitespace first
     s = s.strip()
     try:
-        amt = float(s)
-        if math.isfinite(amt):
-            if amt > 0:
-                return round(amt, 2)
-            else:
-                raise ValidationError("Amount spent must be finite and greater than zero.")
-        else:
-            raise ValidationError("Amount spent must be finite and greater than zero.")
-    except ValueError:
+        x = float(s)
+    except:
         raise ValidationError("Amount spent must be a number.")
+    # check for weird edge cases
+    if x <= 0:
+        raise ValidationError("Amount spent must be finite and greater than zero.")
+    if math.isnan(x) or math.isinf(x):
+        raise ValidationError("Amount spent must be finite and greater than zero.")
+    return round(x, 2)
+
 
 def valid_date(s):
     s = s.strip()
+    # try parsing dd-mm-yyyy
     try:
-        # parse dd-mm-yyyy
         d = datetime.strptime(s, "%d-%m-%Y")
-        return d.strftime("%Y-%m-%d")
-    except ValueError:
+    except:
         raise ValidationError("Date must be in DD-MM-YYYY format.")
+    result = d.strftime("%Y-%m-%d")
+    return result
+
 
 def valCategory(s):
     s = s.strip()
-    if len(s) == 0:
+    if s == "":
         raise ValidationError("Category cannot be empty.")
+    # 30 char max
+    if len(s) > 30:
+        raise ValidationError("Category must be 30 characters or fewer.")
     else:
-        if len(s) > 30:
-            raise ValidationError("Category must be 30 characters or fewer.")
         return s.title()
 
+
+# check description length
+# max 50 words, blank becomes "-"
 def chk_desc(s):
     s = s.strip()
-    words = s.split()
-    if len(words) == 0:
-        return "-"
+    w = s.split()
+    n = len(w)
+    if n == 0:
+        return "-"  # placeholder
+    elif n > 50:
+        raise ValidationError("The description cannot be more than 50 words.")
     else:
-        if len(words) > 50:
-            raise ValidationError("The description cannot be more than 50 words.")
         return s

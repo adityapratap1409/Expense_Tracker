@@ -1,10 +1,9 @@
+# not used yet, just a placeholder for later
 from dataclasses import dataclass
-from typing import Optional
 
-# domain models
 @dataclass
 class Expense:
-    id: Optional[int]
+    id: int
     amt: float
     cat: str
     desc: str
@@ -12,6 +11,6 @@ class Expense:
 
 @dataclass
 class Budget:
-    id: Optional[int]
+    id: int
     cat: str
     lim: float

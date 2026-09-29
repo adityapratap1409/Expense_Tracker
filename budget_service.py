@@ -1,6 +1,7 @@
 from validators import val_amt, valCategory
 
 WARN_PCT = 0.8
+# ALERT_EMAIL = False  # maybe add email alerts later?
 
 class BudgetService:
     def __init__(self, storage):
@@ -14,34 +15,36 @@ class BudgetService:
     def getStatus(self, cat, mth):
         c = valCategory(cat)
         bgt = self.storage.get_bgt(c)
-        if bgt is not None:
-            spent = self.storage.month_sum(c, mth)
-            lim = bgt["monthly_limit"]
-            rem = lim - spent
-            if lim > 0:
-                pct = spent / lim
-            else:
-                pct = 0.0
-            return {
-                "limit": lim,
-                "spent": spent,
-                "remaining": rem,
-                "percent_used": pct,
-            }
-        else:
+        if bgt == None:
             return None
+
+        # calc everything
+        lim = bgt["monthly_limit"]
+        spent = self.storage.month_sum(c, mth)
+        rem = lim - spent
+        pct = 0.0
+        if lim > 0:
+            pct = spent / lim
+
+        result = {}
+        result["limit"] = lim
+        result["spent"] = spent
+        result["remaining"] = rem
+        result["percent_used"] = pct
+        return result
 
     def chk_alert(self, cat, mth):
         c = valCategory(cat)
-        stat = self.getStatus(cat, mth)
-        if stat is not None:
-            pct = stat["percent_used"]
-            if pct >= 1.0:
-                return c + " has exceeded its budget limit"
-            else:
-                if pct >= WARN_PCT:
-                    return c + " is approaching its limit. Please spend responsibly"
-                else:
-                    return c + " is yet to reach its limit. Happy spending!"
-        else:
+        s = self.getStatus(cat, mth)
+        if s == None:
             return None
+        pct = s["percent_used"]
+        # check thresholds
+        msg = ""
+        if pct >= 1.0:
+            msg = c + " has exceeded its budget limit"
+        elif pct >= WARN_PCT:
+            msg = c + " is approaching its limit. Please spend responsibly"
+        else:
+            msg = c + " is yet to reach its limit. Happy spending!"
+        return msg
