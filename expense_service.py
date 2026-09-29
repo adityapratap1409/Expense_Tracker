@@ -1,57 +1,67 @@
 from datetime import datetime
-
-from validators import (
-    val_amt,
-    valid_date,
-    valCategory,
-    chk_desc,
-)
-
+from validators import val_amt, valid_date, valCategory, chk_desc
 
 class NotFoundError(Exception):
     pass
-
 
 class ExpenseService:
     def __init__(self, storage):
         self.storage = storage
 
     def add_exp(self, amt, cat, desc, dt):
-        # validate inputs before saving
-        clean_amt = val_amt(amt)
-        clean_cat = valCategory(cat)
-        clean_desc = chk_desc(desc)
+        clean_a = val_amt(amt)
+        clean_c = valCategory(cat)
+        clean_d = chk_desc(desc)
 
-        # blank date? just use today
-        if dt.strip():
+        # fallback to current date if user gave blank
+        if len(dt.strip()) > 0:
             clean_dt = valid_date(dt)
         else:
             clean_dt = datetime.now().strftime("%Y-%m-%d")
 
-        return self.storage.add_exp(clean_amt, clean_cat, clean_desc, clean_dt)
+        return self.storage.add_exp(clean_a, clean_c, clean_d, clean_dt)
 
     def editExp(self, exp_id, amt, cat, desc, dt):
         old = self.storage.getExp(exp_id)
-        if old is None:
-            raise NotFoundError(f"No expense found with id {exp_id}.")
+        if old is not None:
+            # check each field, keep old value if blank
+            if len(amt.strip()) > 0:
+                new_a = val_amt(amt)
+            else:
+                new_a = old["amount"]
 
-        # keep existing val if user left field blank
-        new_amt = val_amt(amt) if amt.strip() else old["amount"]
-        new_cat = valCategory(cat) if cat.strip() else old["category"]
-        new_desc = chk_desc(desc) if desc.strip() else old["description"]
-        new_dt = valid_date(dt) if dt.strip() else old["date"]
+            if len(cat.strip()) > 0:
+                new_c = valCategory(cat)
+            else:
+                new_c = old["category"]
 
-        self.storage.updExpense(exp_id, new_amt, new_cat, new_desc, new_dt)
+            if len(desc.strip()) > 0:
+                new_d = chk_desc(desc)
+            else:
+                new_d = old["description"]
+
+            if len(dt.strip()) > 0:
+                new_dt = valid_date(dt)
+            else:
+                new_dt = old["date"]
+
+            self.storage.updExpense(exp_id, new_a, new_c, new_d, new_dt)
+        else:
+            raise NotFoundError("No expense found with id %s." % exp_id)
 
     def del_exp(self, exp_id):
         deleted = self.storage.del_exp(exp_id)
         if deleted == 0:
-            raise NotFoundError(f"No expense found with id {exp_id}.")
+            raise NotFoundError("No expense found with id %s." % exp_id)
 
     def list_exp(self, mth=None):
         return self.storage.list_all(mth)
 
     def findByCat(self, cat):
-        # normalize category before matching
         c = valCategory(cat)
-        return [r for r in self.storage.list_all() if r["category"] == c]
+        all_rows = self.storage.list_all()
+        res = []
+        for r in all_rows:
+            if r["category"] == c:
+                res.append(r)
+        return res

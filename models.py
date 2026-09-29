@@ -1,16 +1,14 @@
-# simple dataclasses, handy if we want typed objects instead of raw sqlite rows later
 from dataclasses import dataclass
 from typing import Optional
 
-
+# domain models
 @dataclass
 class Expense:
     id: Optional[int]
     amt: float
     cat: str
     desc: str
-    dt: str  # YYYY-MM-DD
-
+    dt: str
 
 @dataclass
 class Budget:
