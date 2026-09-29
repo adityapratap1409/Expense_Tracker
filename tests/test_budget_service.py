@@ -1,45 +1,52 @@
 import unittest
 from storage import Storage
-from expense_service import ExpenseService, NotFoundError
-from validators import ValidationError
 from budget_service import BudgetService
 
 
 class TestBudgetService(unittest.TestCase):
     def setUp(self):
-        self.storage = Storage(":memory:")
-        self.service = BudgetService(self.storage)
+        self.db = Storage(":memory:")
+        self.svc = BudgetService(self.db)
 
     def tearDown(self):
-        self.storage.close()
+        self.db.close()
 
-    def test_check_alert_with_no_budget_returns_none(self):
-        result = self.service.check_alert("rent", "2026-09")
-        self.assertIsNone(result)
+    def test_no_bgt_alert(self):
+        # no budget set returns None
+        res = self.svc.chk_alert("rent", "2026-09")
+        self.assertIsNone(res)
 
-    def test_check_alert_under_threshold_returns_none(self):
-        self.service.set_budget("food", "100")
-        self.storage.add_expense(50, "Food", "Lunch", "2026-09-24")
-        result = self.service.check_alert("food", "2026-09")
-        self.assertIn("Happy spending", result)
+    def test_under_threshold(self):
+        # 50/100 -> well under 80%
+        self.svc.set_bgt("food", "100")
+        self.db.add_exp(50, "Food", "Lunch", "2026-09-24")
+        res = self.svc.chk_alert("food", "2026-09")
+        self.assertIn("Happy spending", res)
 
-    def test_check_alert_near_limit_returns_warning(self):
-        self.service.set_budget("food", "100")
-        self.storage.add_expense(85, "Food", "Groceries", "2026-09-24")
-        result = self.service.check_alert("food", "2026-09")
-        self.assertIn("approaching", result)
+    def test_near_limit(self):
+        # 85/100 -> >=80% warning
+        self.svc.set_bgt("food", "100")
+        self.db.add_exp(85, "Food", "Groceries", "2026-09-24")
+        res = self.svc.chk_alert("food", "2026-09")
+        self.assertIn("approaching", res)
 
-    def test_check_alert_over_limit_returns_exceeded_message(self):
-        self.service.set_budget("food", "100")
-        self.storage.add_expense(120, "Food", "Dinner", "2026-09-24")
-        result = self.service.check_alert("food", "2026-09")
-        self.assertIn("exceeded", result)
+    def test_over_limit(self):
+        # 120/100 -> exceeded
+        self.svc.set_bgt("food", "100")
+        self.db.add_exp(120, "Food", "Dinner", "2026-09-24")
+        res = self.svc.chk_alert("food", "2026-09")
+        self.assertIn("exceeded", res)
 
-    def test_get_budget_status_returns_correct_numbers(self):
-        self.service.set_budget("food", "100")
-        self.storage.add_expense(50, "Food", "Lunch", "2026-09-24")
-        status = self.service.get_budget_status("food", "2026-09")
-        self.assertEqual(status["percent_used"], 0.5)
+    def test_status_numbers(self):
+        # check stats dict calculations
+        self.svc.set_bgt("food", "100")
+        self.db.add_exp(50, "Food", "Lunch", "2026-09-24")
+        stat = self.svc.getStatus("food", "2026-09")
+
+        self.assertEqual(stat["percent_used"], 0.5)
+        self.assertEqual(stat["limit"], 100.0)
+        self.assertEqual(stat["spent"], 50.0)
+        self.assertEqual(stat["remaining"], 50.0)
 
 
 if __name__ == "__main__":

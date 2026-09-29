@@ -1,66 +1,57 @@
 from datetime import datetime
 
 from validators import (
-    validate_amount,
-    validate_category,
-    validate_date,
-    validate_description,
+    val_amt,
+    valid_date,
+    valCategory,
+    chk_desc,
 )
 
 
 class NotFoundError(Exception):
-
     pass
 
 
 class ExpenseService:
-
     def __init__(self, storage):
-
         self.storage = storage
 
-    def delete_expense(self, expense_id):
+    def add_exp(self, amt, cat, desc, dt):
+        # validate inputs before saving
+        clean_amt = val_amt(amt)
+        clean_cat = valCategory(cat)
+        clean_desc = chk_desc(desc)
 
-        deleted = self.storage.delete_expense(expense_id)
-        if deleted == 0:
-            raise NotFoundError(f"No expense found with id {expense_id}. ")
-
-    def edit_expense(
-        self, expense_id, raw_amount, raw_category, raw_description, raw_date
-    ):
-
-        old = self.storage.get_expense(expense_id)
-        if old is None:
-            raise NotFoundError(f"No expense found with id {expense_id}.")
-        amount = validate_amount(raw_amount) if raw_amount.strip() else old["amount"]
-        category = (
-            validate_category(raw_category) if raw_category.strip() else old["category"]
-        )
-        description = (
-            validate_description(raw_description)
-            if raw_description.strip()
-            else old["description"]
-        )
-        date = validate_date(raw_date) if raw_date.strip() else old["date"]
-
-        self.storage.update_expense(expense_id, amount, category, description, date)
-
-    def list_expenses(self, month=None):
-
-        return self.storage.list_expenses(month)
-
-    def search_by_category(self, raw_category):
-
-        category = validate_category(raw_category)
-        return [r for r in self.storage.list_expenses() if r["category"] == category]
-
-    def add_expense(self, raw_amount, raw_category, raw_description, raw_date):
-
-        amount = validate_amount(raw_amount)
-        category = validate_category(raw_category)
-        description = validate_description(raw_description)
-        if raw_date.strip():
-            date = validate_date(raw_date)
+        # blank date? just use today
+        if dt.strip():
+            clean_dt = valid_date(dt)
         else:
-            date = datetime.now().strftime("%Y-%m-%d")
-        return self.storage.add_expense(amount, category, description, date)
+            clean_dt = datetime.now().strftime("%Y-%m-%d")
+
+        return self.storage.add_exp(clean_amt, clean_cat, clean_desc, clean_dt)
+
+    def editExp(self, exp_id, amt, cat, desc, dt):
+        old = self.storage.getExp(exp_id)
+        if old is None:
+            raise NotFoundError(f"No expense found with id {exp_id}.")
+
+        # keep existing val if user left field blank
+        new_amt = val_amt(amt) if amt.strip() else old["amount"]
+        new_cat = valCategory(cat) if cat.strip() else old["category"]
+        new_desc = chk_desc(desc) if desc.strip() else old["description"]
+        new_dt = valid_date(dt) if dt.strip() else old["date"]
+
+        self.storage.updExpense(exp_id, new_amt, new_cat, new_desc, new_dt)
+
+    def del_exp(self, exp_id):
+        deleted = self.storage.del_exp(exp_id)
+        if deleted == 0:
+            raise NotFoundError(f"No expense found with id {exp_id}.")
+
+    def list_exp(self, mth=None):
+        return self.storage.list_all(mth)
+
+    def findByCat(self, cat):
+        # normalize category before matching
+        c = valCategory(cat)
+        return [r for r in self.storage.list_all() if r["category"] == c]

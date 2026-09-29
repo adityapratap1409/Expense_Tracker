@@ -5,39 +5,44 @@ class ReportService:
     def __init__(self, storage):
         self.storage = storage
 
-    def monthly_summary(self, month):
-        rows = self.storage.list_expenses(month)
-        count = len(rows)
+    def month_summary(self, mth):
+        # total spent & transaction count for the month
+        rows = self.storage.list_all(mth)
+        cnt = len(rows)
         total = sum(r["amount"] for r in rows)
-        return {"count": count, "total": total}
+        return {"count": cnt, "total": round(total, 2)}
 
-    def category_breakdown(self, month):
-        rows = self.storage.list_expenses(month)
-        by_category = {}
-        for expense in rows:
-            by_category[expense["category"]] = (
-                by_category.get(expense["category"], 0) + expense["amount"]
-            )
-        return by_category
+    def catBreakdown(self, mth):
+        # group spending by category
+        rows = self.storage.list_all(mth)
+        by_cat = {}
+        for r in rows:
+            c = r["category"]
+            by_cat[c] = round(by_cat.get(c, 0.0) + r["amount"], 2)
+        return by_cat
 
-    def top_expenses(self, month, limit=5):
-        rows = self.storage.list_expenses(month)
-        sorted_rows = sorted(rows, key=lambda expense: expense["amount"], reverse=True)
-        return sorted_rows[:limit]
+    def top_exp(self, mth, limit=5):
+        # highest spends first
+        rows = self.storage.list_all(mth)
+        top = sorted(rows, key=lambda x: x["amount"], reverse=True)
+        return top[:limit]
 
-    def export_csv(self, filename, month=None):
-        rows = self.storage.list_expenses(month)
-        with open(filename, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["ID", "Date", "Category", "Amount", "Description"])
-            for expense in rows:
-                writer.writerow(
+    def exportCSV(self, fname, mth=None):
+        # export to csv file
+        rows = self.storage.list_all(mth)
+
+        with open(fname, "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(["ID", "Date", "Category", "Amount", "Description"])
+            for r in rows:
+                w.writerow(
                     [
-                        expense["id"],
-                        expense["date"],
-                        expense["category"],
-                        f'{expense["amount"]:.2f}',
-                        expense["description"],
+                        r["id"],
+                        r["date"],
+                        r["category"],
+                        f'{r["amount"]:.2f}',
+                        r["description"],
                     ]
                 )
-            return filename
+
+        return fname

@@ -1,3 +1,4 @@
+# input validators and cleanup helpers
 import math
 from datetime import datetime
 
@@ -6,39 +7,53 @@ class ValidationError(ValueError):
     pass
 
 
-def validate_amount(raw):
-    raw = raw.strip()
+def val_amt(val):
+    val = val.strip()
     try:
-        amt = float(raw)
+        amt = float(val)
     except ValueError:
         raise ValidationError("Amount spent must be a number.")
+
+    # sanity checks: positive & not inf/nan
     if amt <= 0 or not math.isfinite(amt):
         raise ValidationError("Amount spent must be finite and greater than zero.")
+
+    # 2 decimal places for cents
     return round(amt, 2)
 
 
-def validate_date(raw):
-    raw = raw.strip()
+def valid_date(val):
+    val = val.strip()
     try:
-        parsed = datetime.strptime(raw, "%d-%m-%Y")
+        # expect dd-mm-yyyy from user prompt
+        d = datetime.strptime(val, "%d-%m-%Y")
     except ValueError:
         raise ValidationError("Date must be in DD-MM-YYYY format.")
-    return parsed.strftime("%Y-%m-%d")
+
+    # sqlite sorts standard ISO strings (yyyy-mm-dd) much easier
+    return d.strftime("%Y-%m-%d")
 
 
-def validate_category(raw):
-    raw = raw.strip()
-    if not raw:
+def valCategory(val):
+    cat = val.strip()
+    if not cat:
         raise ValidationError("Category cannot be empty.")
-    elif len(raw) > 30:
+    if len(cat) > 30:
         raise ValidationError("Category must be 30 characters or fewer.")
-    return raw.title()
+
+    # title-case so 'food' and 'Food' don't become two separate categories
+    return cat.title()
 
 
-def validate_description(raw):
-    raw = raw.strip()
-    if len(raw.split()) == 0:
+def chk_desc(val):
+    txt = val.strip()
+    words = txt.split()
+
+    # dash placeholder keeps table alignment neat
+    if not words:
         return "-"
-    if len(raw.split()) > 50:
+
+    if len(words) > 50:
         raise ValidationError("The description cannot be more than 50 words.")
-    return raw
+
+    return txt

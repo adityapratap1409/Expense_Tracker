@@ -7,33 +7,38 @@ from validators import ValidationError
 
 class TestExpenseService(unittest.TestCase):
     def setUp(self):
-        self.storage = Storage(":memory:")
-        self.service = ExpenseService(self.storage)
+        self.db = Storage(":memory:")
+        self.svc = ExpenseService(self.db)
 
     def tearDown(self):
-        self.storage.close()
+        self.db.close()
 
-    def test_add_expense_with_blank_date_uses_today(self):
-        new_id = self.service.add_expense("12.5", "Food", "Lunch", " ")
-        row = self.storage.get_expense(new_id)
-        self.assertEqual(row["date"], datetime.now().strftime("%Y-%m-%d"))
+    def test_blank_date(self):
+        # blank date defaults to today
+        eid = self.svc.add_exp("12.5", "Food", "Lunch", " ")
+        r = self.db.getExp(eid)
+        self.assertEqual(r["date"], datetime.now().strftime("%Y-%m-%d"))
 
-    def test_add_expense_with_bad_amount_raises(self):
+    def test_bad_amt(self):
+        # garbage text should raise
         with self.assertRaises(ValidationError):
-            self.service.add_expense("abc", "food", "lunch", " ")
+            self.svc.add_exp("abc", "food", "lunch", " ")
 
-    def test_edit_expense_blank_fields_keep_old_values(self):
-        new_id = self.service.add_expense("10", "food", "lunch", "24-09-2026")
-        self.service.edit_expense(new_id, "", "", "", "")
-        row = self.storage.get_expense(new_id)
-        self.assertEqual(row["amount"], 10.0)
-        self.assertEqual(row["category"], "Food")
-        self.assertEqual(row["description"], "lunch")
-        self.assertEqual(row["date"], "2026-09-24")
+    def test_edit_blank(self):
+        # blank string keeps old value
+        eid = self.svc.add_exp("10", "food", "lunch", "24-09-2026")
+        self.svc.editExp(eid, "", "", "", "")
+        r = self.db.getExp(eid)
 
-    def test_delete_missing_expense_raises_not_found(self):
+        self.assertEqual(r["amount"], 10.0)
+        self.assertEqual(r["category"], "Food")
+        self.assertEqual(r["description"], "lunch")
+        self.assertEqual(r["date"], "2026-09-24")
+
+    def test_del_missing(self):
+        # non-existent id raises NotFoundError
         with self.assertRaises(NotFoundError):
-            self.service.delete_expense(999)
+            self.svc.del_exp(999)
 
 
 if __name__ == "__main__":

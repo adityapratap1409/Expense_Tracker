@@ -2,87 +2,85 @@ import unittest
 
 from validators import (
     ValidationError,
-    validate_amount,
-    validate_date,
-    validate_category,
-    validate_description,
+    val_amt,
+    valid_date,
+    valCategory,
+    chk_desc,
 )
 
 
 class TestValidateAmount(unittest.TestCase):
-    def test_valid_amount(self):
-        self.assertEqual(validate_amount("12.5"), 12.5)
+    def test_val_amt(self):
+        self.assertEqual(val_amt("12.5"), 12.5)
 
-    def test_rounds_to_two_decimals(self):
-        self.assertEqual(validate_amount("12.346"), 12.35)
+    def test_round_cents(self):
+        self.assertEqual(val_amt("12.346"), 12.35)
 
-    def test_zero_rejected(self):
+    def test_zero_amt(self):
         with self.assertRaises(ValidationError):
-            validate_amount("0")
+            val_amt("0")
 
-    def test_negative_rejected(self):
+    def test_neg_amt(self):
         with self.assertRaises(ValidationError):
-            validate_amount("-5")
+            val_amt("-5")
 
-    def test_text_rejected(self):
+    def test_bad_text(self):
         with self.assertRaises(ValidationError):
-            validate_amount("abc")
+            val_amt("abc")
 
-    def test_nan_rejected(self):
+    def test_nan_val(self):
         with self.assertRaises(ValidationError):
-            validate_amount("nan")
+            val_amt("nan")
 
 
 class TestValidateDate(unittest.TestCase):
-    def test_valid_date_is_converted(self):
-        self.assertEqual(validate_date("23-09-2026"), "2026-09-23")
+    def test_valid_date(self):
+        self.assertEqual(valid_date("23-09-2026"), "2026-09-23")
 
-    def test_single_digit_date_is_padded(self):
-        self.assertEqual(validate_date("5-9-2026"), "2026-09-05")
+    def test_pad_date(self):
+        # single digit day/month padded with 0
+        self.assertEqual(valid_date("5-9-2026"), "2026-09-05")
 
-    def test_impossible_date_rejected(self):
+    def test_bad_date(self):
         with self.assertRaises(ValidationError):
-            validate_date("30-02-2026")
+            valid_date("30-02-2026")
 
-    def test_text_rejected(self):
+    def test_not_date(self):
         with self.assertRaises(ValidationError):
-            validate_date("hello")
+            valid_date("hello")
 
 
 class TestValidateCategory(unittest.TestCase):
+    def test_val_cat(self):
+        self.assertEqual(valCategory("food"), "Food")
 
-    def test_valid_category_sample_output(self):
-        self.assertEqual(validate_category("food"), "Food")
-
-    def test_blank_category(self):
+    def test_blank_cat(self):
         with self.assertRaises(ValidationError):
-            validate_category(" ")
+            valCategory(" ")
 
-    def test_valid_Category_at_limit_accepted(self):
-        self.assertEqual(validate_category("a" * 30), "A" + "a" * 29)
+    def test_cat_limit(self):
+        self.assertEqual(valCategory("a" * 30), "A" + "a" * 29)
 
-    def test_category_too_long_rejected(self):
+    def test_long_cat(self):
         with self.assertRaises(ValidationError):
-            validate_category("a" * 31)
+            valCategory("a" * 31)
 
 
 class TestValidateDescription(unittest.TestCase):
+    def test_val_desc(self):
+        self.assertEqual(chk_desc("Outing with Friends"), "Outing with Friends")
 
-    def test_valid_description_sample_output(self):
-        self.assertEqual(
-            validate_description("Outing with Friends"), "Outing with Friends"
-        )
+    def test_blank_desc(self):
+        # empty falls back to '-'
+        self.assertEqual(chk_desc(" "), "-")
 
-    def test_blank_description(self):
-        self.assertEqual(validate_description(" "), "-")
+    def test_desc_limit(self):
+        txt = " ".join(["word"] * 50)
+        self.assertEqual(chk_desc(txt), txt)
 
-    def test_valid_description_at_limit_accepted(self):
-        text = " ".join(["word"] * 50)
-        self.assertEqual(validate_description(text), text)
-
-    def test_description_too_long_rejected(self):
+    def test_long_desc(self):
         with self.assertRaises(ValidationError):
-            validate_description(" ".join(["word"] * 51))
+            chk_desc(" ".join(["word"] * 51))
 
 
 if __name__ == "__main__":

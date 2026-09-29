@@ -1,9 +1,10 @@
 import logging
 
 
-def setup_logging(log_file="expense_tracker.log"):
+# logs to file so stdout/terminal doesn't get cluttered
+def init_log(fname="expense_tracker.log"):
     logging.basicConfig(
-        filename=log_file,
+        filename=fname,
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
