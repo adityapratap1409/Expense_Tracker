@@ -8,43 +8,52 @@ class BudgetService:
         self.storage = storage
 
     def set_bgt(self, cat, lim):
-        c = valCategory(cat)
-        l = val_amt(lim)
-        self.storage.setBudget(c, l)
+        # sanitize category and amount limit
+        c_val = valCategory(cat)
+        l_val = val_amt(lim)
+        self.storage.setBudget(c_val, l_val)
 
     def getStatus(self, cat, mth):
-        c = valCategory(cat)
-        bgt = self.storage.get_bgt(c)
-        if bgt == None:
+        # check category budget status
+        c_val = valCategory(cat)
+        bgt_row = self.storage.get_bgt(c_val)
+        if bgt_row == None:
             return None
+        
+        # compute limits and spent totals
+        lim = float(bgt_row["monthly_limit"])
+        spent = self.storage.month_sum(c_val, mth)
+        if spent == None:
+            spent = 0.0
+        else:
+            spent = float(spent)
 
-        # calc everything
-        lim = bgt["monthly_limit"]
-        spent = self.storage.month_sum(c, mth)
         rem = lim - spent
         pct = 0.0
         if lim > 0:
             pct = spent / lim
-
-        result = {}
-        result["limit"] = lim
-        result["spent"] = spent
-        result["remaining"] = rem
-        result["percent_used"] = pct
-        return result
+        
+        # assemble status map
+        out_dict = {}
+        out_dict["limit"] = lim
+        out_dict["spent"] = spent
+        out_dict["remaining"] = rem
+        out_dict["percent_used"] = pct
+        return out_dict
 
     def chk_alert(self, cat, mth):
-        c = valCategory(cat)
-        s = self.getStatus(cat, mth)
-        if s == None:
+        c_val = valCategory(cat)
+        stat = self.getStatus(cat, mth)
+        if stat == None:
+            # no budget found
             return None
-        pct = s["percent_used"]
-        # check thresholds
-        msg = ""
+        
+        pct = stat["percent_used"]
+        # check warning thresholds
         if pct >= 1.0:
-            msg = c + " has exceeded its budget limit"
+            msg = "%s has exceeded its budget limit" % c_val
         elif pct >= WARN_PCT:
-            msg = c + " is approaching its limit. Please spend responsibly"
+            msg = "%s is approaching its limit. Please spend responsibly" % c_val
         else:
-            msg = c + " is yet to reach its limit. Happy spending!"
+            msg = "%s is yet to reach its limit. Happy spending!" % c_val
         return msg

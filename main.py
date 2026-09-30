@@ -20,13 +20,15 @@ class clr:
     RED = "\033[91m"
 
 def _hdr(txt):
+    # print section banner header
     print("\n" + "="*MENU_W)
     print(txt.center(MENU_W))
     print("="*MENU_W)
 
 def _menu():
+    # print menu choices
     print("\n" + "-"*MENU_W)
-    items = [
+    menu_items = [
         " %s1%s. Add Expense",
         " %s2%s. Edit Expense",
         " %s3%s. Delete Expense",
@@ -40,31 +42,32 @@ def _menu():
         "%s11%s. Export to CSV",
         "%s12%s. Exit",
     ]
-    for t in items:
-        print(t % (clr.CYN, clr.RST))
+    for line in menu_items:
+        print(line % (clr.CYN, clr.RST))
     print("-"*MENU_W)
 
 
 def _fmt_row(r):
     # helper to format an expense row for display
-    s = "[%3s] %s  %-15s $%10.2f  %s" % (
+    fmt_str = "[%3s] %s  %-15s $%10.2f  %s" % (
         r['id'], r['date'], r['category'], r['amount'], r['description'])
-    return s
+    return fmt_str
 
 
 def do_add(svc):
     _hdr("Add New Expense")
-    amt = input("Amount ($): ").strip()
-    cat = input("Category: ").strip()
-    desc = input("Description (optional): ").strip()
-    dt = input("Date (DD-MM-YYYY) [blank = today]: ").strip()
+    amt_in = input("Amount ($): ").strip()
+    cat_in = input("Category: ").strip()
+    desc_in = input("Description (optional): ").strip()
+    dt_in = input("Date (DD-MM-YYYY) [blank = today]: ").strip()
     try:
-        eid = svc.add_exp(amt, cat, desc, dt)
-        print("\n" + clr.GRN + "Saved expense #" + str(eid) + "." + clr.RST)
-        logging.info("Added expense #%s" % eid)
-    except ValidationError as e:
-        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
-        logging.error("add failed: %s" % str(e))
+        # call service to save record
+        new_id = svc.add_exp(amt_in, cat_in, desc_in, dt_in)
+        print("\n" + clr.GRN + "Saved expense #" + str(new_id) + "." + clr.RST)
+        logging.info("Added expense #%s" % str(new_id))
+    except ValidationError as err:
+        print("\n" + clr.RED + "Error: " + str(err) + clr.RST)
+        logging.error("add failed: %s" % str(err))
 
 
 def do_view(svc):
@@ -98,12 +101,12 @@ def do_edit(svc):
         svc.editExp(eid, a, c, d, dt)
         print("\n" + clr.GRN + "Expense #" + str(eid) + " updated." + clr.RST)
         logging.info("updated #%d" % eid)
-    except NotFoundError as e:
-        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
-        logging.error(str(e))
-    except ValidationError as e:
-        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
-        logging.error(str(e))
+    except NotFoundError as err:
+        print("\n" + clr.RED + "Error: " + str(err) + clr.RST)
+        logging.error(str(err))
+    except ValidationError as err:
+        print("\n" + clr.RED + "Error: " + str(err) + clr.RST)
+        logging.error(str(err))
 
 
 def do_del(svc):
@@ -116,8 +119,8 @@ def do_del(svc):
         logging.info("deleted #%d" % eid)
     except ValueError:
         print("\n" + clr.RED + "Error: ID must be a number." + clr.RST)
-    except NotFoundError as e:
-        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
+    except NotFoundError as err:
+        print("\n" + clr.RED + "Error: " + str(err) + clr.RST)
 
 
 def do_search(svc):
@@ -130,8 +133,8 @@ def do_search(svc):
         else:
             for r in res:
                 print(_fmt_row(r))
-    except ValidationError as e:
-        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
+    except ValidationError as err:
+        print("\n" + clr.RED + "Error: " + str(err) + clr.RST)
 
 
 def do_setbgt(svc):
@@ -142,8 +145,8 @@ def do_setbgt(svc):
         svc.set_bgt(cat, lim)
         print("\n" + clr.GRN + "Budget set for " + cat.title() + "." + clr.RST)
         logging.info("budget set: %s" % cat.title())
-    except ValidationError as e:
-        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
+    except ValidationError as err:
+        print("\n" + clr.RED + "Error: " + str(err) + clr.RST)
 
 
 def do_chkbgt(svc):
@@ -157,8 +160,8 @@ def do_chkbgt(svc):
             print("\n" + clr.YLW + "No budget set for '" + cat.title() + "'." + clr.RST)
         else:
             print("\n" + msg)
-    except ValidationError as e:
-        print("\n" + clr.RED + "Error: " + str(e) + clr.RST)
+    except ValidationError as err:
+        print("\n" + clr.RED + "Error: " + str(err) + clr.RST)
 
 
 def do_summary(svc):
@@ -197,6 +200,7 @@ def do_top(svc):
         for r in top:
             print(_fmt_row(r))
 
+
 def do_csv(svc):
     _hdr("Export to CSV")
     fname = input("Filename [expenses_export.csv]: ").strip()
@@ -213,6 +217,7 @@ def do_csv(svc):
 
 
 def main():
+    # initialize database and services
     db = Storage(DB_FILE)
     exp = ExpenseService(db)
     bgt = BudgetService(db)
@@ -222,31 +227,37 @@ def main():
 
     _hdr("Expense Tracker")
 
-    handlers = {
-        "1": lambda: do_add(exp),
-        "2": lambda: do_edit(exp),
-        "3": lambda: do_del(exp),
-        "4": lambda: do_view(exp),
-        "5": lambda: do_search(exp),
-        "6": lambda: do_setbgt(bgt),
-        "7": lambda: do_chkbgt(bgt),
-        "8": lambda: do_summary(rpt),
-        "9": lambda: do_catbrk(rpt),
-        "10": lambda: do_top(rpt),
-        "11": lambda: do_csv(rpt),
-    }
-
     running = True
-    while running:
+    while running == True:
         _menu()
         opt = input("Choose an option (1-12): ").strip()
-        if opt == "12":
+        if opt == "1":
+            do_add(exp)
+        elif opt == "2":
+            do_edit(exp)
+        elif opt == "3":
+            do_del(exp)
+        elif opt == "4":
+            do_view(exp)
+        elif opt == "5":
+            do_search(exp)
+        elif opt == "6":
+            do_setbgt(bgt)
+        elif opt == "7":
+            do_chkbgt(bgt)
+        elif opt == "8":
+            do_summary(rpt)
+        elif opt == "9":
+            do_catbrk(rpt)
+        elif opt == "10":
+            do_top(rpt)
+        elif opt == "11":
+            do_csv(rpt)
+        elif opt == "12":
             print("\nGoodbye!")
             db.close()
             logging.info("app closed")
             running = False
-        elif opt in handlers:
-            handlers[opt]()
         else:
             print("\n" + clr.RED + "Invalid option, try again." + clr.RST)
 
